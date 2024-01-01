@@ -1,45 +1,18 @@
-- [SOUTH SUDAN AOK DATA PROCESSING
-  TUTORIAL](#south-sudan-aok-data-processing-tutorial)
-- [SETUP](#setup)
-  - [packages](#packages)
-- [INPUTS](#inputs)
-  - [New Settlement Data](#new-settlement-data)
-  - [Cleaning Logs](#cleaning-logs)
-- [DEALING WITH NEW SETTLEMENT
-  DATA](#dealing-with-new-settlement-data)
-  - [Reformatting Data/ Minor
-    Manipulations](#reformatting-data-minor-manipulations)
-  - [Checking/Cross Referencing Settlement Data, Cleaning Logs and
-    Assessment
-    Data](#checkingcross-referencing-settlement-data-cleaning-logs-and-assessment-data)
-  - [Exact Matches](#exact-matches)
-  - [Finding The Closest Point](#finding-the-closest-point)
-  - [Evaluating the closest point](#evaluating-the-closest-point)
-  - [NEW SETTLEMENT OUTPUTS](#new-settlement-outputs)
-- [AGGREATION/ANALYSIS](#aggreationanalysis)
-  - [County Level Aggregation](#county-level-aggregation)
-  - [Hexagonal Aggregation](#hexagonal-aggregation)
-- [NEXT STEPS](#next-steps)
+# South Sudan AoK Data Processing
 
-# SOUTH SUDAN AOK DATA PROCESSING TUTORIAL
+This project was developed in 2020 to automate South Sudan Areas of Knowledge (AoK)
+Situation Monitoring data collation and analysis. This document serves as a guide
+for the next Data Analyst.
 
-This project was developed in January 2020 to automate South Sudan AOK
-data collation and analysis. This document serves as a tutorial for the
-the next Analyst. As this Git-hub will no longer be maintained after
-March 6 2020 it is recommended that this github be forked by the
-responsible GIS/Data Unit Manager and the fork be maintained and
-updated.
+The process is meant to be implemented entirely through the script
+**AOK_cleaning_aggregating.R**
 
-The actual process is mean to be implemented entirely through the script
-currently labeled **AOK_cleaning_aggregating.R** The markdown (rmd)
-file was simple made to create the tutorial and enhance documentation.
+# Setup
 
-# SETUP
-
-## packages
+## Packages
 
 You will need the packages below. This analysis is dependent on the
-butteR package which can be downloaded from github (link below).
+butteR package which can be downloaded from GitHub (link below).
 
 ```r
 # install.packages("devtools")
@@ -57,7 +30,7 @@ source("scripts/functions/aok_cleaning_functions.R")
 source("scripts/functions/aok_aggregate_by_county_wrapped.R")
 ```
 
-# INPUTS
+# Inputs
 
 ## New Settlement Data
 
@@ -89,7 +62,7 @@ adm2<- st_read(admin_gdb,"ssd_admbnda_adm2_imwg_nbs_20180401" )
 adm2<-st_transform(adm2,crs=4326)
 new_sett_sf<-st_as_sf(new_sett,coords=c("long","lat"), crs=4326)
 
-# LOAD RAW DATA -----------------------------------------------------------
+# Load raw data
 # aok_raw<-download_aok_data(keys_file = "scripts/functions/keys.R")
 # write.csv(aok_raw,"inputs/2020_02/2020_02_FEB_AOK_RAW_20200301.csv")
 # aok_raw<-read.csv("inputs/2020_02/2020_02_FEB_AOK_RAW_20200301.csv", stringsAsFactors = F,na.strings = c("n/a","", ""))
@@ -98,12 +71,12 @@ aok_raw<-read.csv("inputs/2020_02/2020_02_FEB_AOK_RAW_20200304_from_KOBO.csv", s
 
 ## Cleaning Logs
 
-Once cleaning logs are revieved this chunk can be filled. First step is
+Once cleaning logs are revieved this section can be filled. First step is
 to compile all of the logs into one. Next we can check and implement
 them using the two butteR tools commented out below.
 
 ```r
-# STEP 1 COMPILE CLEANING LOGS --------------------------------------------
+# STEP 1 Compile cleaning logs
 
 # cleaning_logs<-butteR::read_all_csvs_in_folder(input_csv_folder = "inputs/2020_02/cleaning_logs")
 # cleaning_log<-bind_rows(cleaning_logs)
@@ -117,12 +90,12 @@ them using the two butteR tools commented out below.
 # IMPLEMENT CLEANING LOG
 ```
 
-# DEALING WITH NEW SETTLEMENT DATA
+# Dealing with New Settlement Data
 
-## Reformatting Data/ Minor Manipulations
+## Reformatting Data / Minor Manipulations
 
 ```r
-# SPATIAL JOIN
+# Spatial join
 new_sett_sf<-new_sett_sf %>% st_join( adm2 %>% dplyr::select(adm2=admin2RefN))
 
 new_sett_sf<-new_sett_sf %>%
@@ -140,7 +113,7 @@ master_settlement_sf<-master_settlement_sf %>%
 ## Checking/Cross Referencing Settlement Data, Cleaning Logs and Assessment Data
 
 Compare new settlements to data after initial round of data cleaning
-implementation too make sure that AO has not already dealt wih the
+implementation to make sure that AO has not already dealt with the
 settlement in the cleaning log. Technically, if the settlement is
 addressed in the cleaning log they should have put “cleaning_log” under
 the action column in the new settlement data set.
@@ -149,7 +122,7 @@ If the settlement in the new settlement sheet has been addressed in the
 cleaning log, remove it from the new settlement sheet.
 
 ```r
-# CHECK IF NEW SETTLEMENTS HAVE BEEN FIXED IN CL --------------------------
+# Check if new settletments have been fixed in the cleaning log
 
 aok_clean1<-aok_raw
 
@@ -166,7 +139,7 @@ new_sett_sf<- new_sett_sf %>% filter(!uuid %in% remove_from_new_sett)
 
 ## Exact Matches
 
-It is possible that the enumerator entered “other” for D.new_settlement
+It's possible that the enumerator entered “other” for D.new_settlement
 and then wrote a settlement that already existed. These cases are easy
 to find. If this situation occurs, it is an error during data
 collection/cleaning and should therefore be addressed in a cleaning log
@@ -175,18 +148,18 @@ this information into a cleaning log, which can then be implemented with
 the butteR::implement_cleaning_log function.
 
 ```r
-# NEW SETTLEMENT DATA WHICH MATCHES MASTER SETTLEMENTS EXACTLY ------------
+# New settlement data which matches master settlements exactly
 
 exact_matches1<-new_sett_sf %>%
   mutate(matched_where= case_when(new.enum_sett_county %in% master_settlement$mast.settlement_county_sanitized~"enum", #CHECK WITH ENUMS INPUT
                                   new.adm2_sett_county %in% master_settlement$mast.settlement_county_sanitized~"shapefile_only" #CHECK WITH SHAEFILE COUNTY
   )) %>%
-  filter(!is.na(matched_where)) #ONLY RETURN EXACT MATCHES
+  filter(!is.na(matched_where)) # Only return exact matches
 
 # WRITE EXACT MATCHES TO CLEANING LOG TO THEN IMPLEMENT ON DATA.
 aok_exact_matches_cl<-exact_matches_to_cl(exact_match_data = exact_matches1,user = "Jack")
 
-#NOW IMPLEMENT THIS CLEANING LOG!
+#NOW IMPLEMENT THIS CLEANING LOG
 aok_clean2<-butteR::implement_cleaning_log(df = aok_clean1,df_uuid = "X_uuid",
                                            cl = aok_exact_matches_cl,
                                            cl_change_type_col = "change_type",
@@ -297,7 +270,7 @@ else{
 }
 ```
 
-## NEW SETTLEMENT OUTPUTS
+## New Settlement Outputs
 
 ### Generate New Itemset
 
@@ -368,7 +341,7 @@ new_setts_add_to_master<-new_settlement_evaluation$checked_setlements %>%
 master_new<-bind_rows(list(new_setts_add_to_master,master_settlement %>% mutate(DATE=dmy(DATE))))
 ```
 
-# AGGREATION/ANALYSIS
+# Aggregation / Analysis
 
 ## County Level Aggregation
 
@@ -571,7 +544,7 @@ hex_grid_polygon_with_aggregated_data<-hex_grid %>% left_join(analyzed_by_grid_t
 #using st_write function
 ```
 
-# NEXT STEPS
+# Next Steps
 
 streamline the aok_by_county agggregation function so that it does not
 have to be continusly edited.
