@@ -335,7 +335,7 @@ master_new <- bind_rows(list(new_setts_add_to_master,master_settlement %>% mutat
 ## County Level Aggregation
 
 Once the cleaning log(s) have been implemented and the new settlements
-dealt with it is time to aggregate/analyze the data. It is important to
+dealt with it is time to aggregate/analyse the data. It is important to
 note that any cleaning logs generated from the new settlement process
 must be implemented and binded to the original compiled cleaning log for
 documentation purposes.
@@ -413,7 +413,7 @@ The monthly data should then be aggregated to the hexagonal grid for
 fact sheet maps. The grid has already been created and can simply be
 loaded. I think it might be best if this portion is eventually wrrapped
 into a function. The only things that will change here are potentially
-the questions to be analyzed which can be specified/modified as vector
+the questions to be analysed which can be specified/modified as vector
 which can be used as one of the function arguments.
 
 It is important to note that all hexagons with \>= 2 Ki and \>= 2
@@ -480,7 +480,7 @@ grid_summary <- assessed_w_grid %>%
 grid_summary_thresholded  <-  grid_summary %>% filter(ki_num > 1, settlement_num > 1)
 ```
 
-Next we will create composite indicators to analyze at the grid level.
+Next we will create composite indicators to analyse at the grid level.
 This may need to be edited to add or remove composite indicators later.
 
 ```r
@@ -503,27 +503,27 @@ assessed_w_grid_w_composite <- assessed_w_grid %>%
 # Extract new columns added (should be only composite). You can add new composites above and this will still work
 vars_to_avg <- names(assessed_w_grid_w_composite)[!names(assessed_w_grid_w_composite)%in%names(assessed_w_grid)]
 
-analyzed_by_grid <- assessed_w_grid_w_composite %>%
+analysed_by_grid <- assessed_w_grid_w_composite %>%
   group_by(id_grid, State_id,month,year,date,D.info_state, D.info_county)%>%
   summarise_at(vars(vars_to_avg),mean, na.rm=T)
 ```
 
-Once analyzed you can write the aggreagted data to a csv or left_join
+Once analysed you can write the aggreagted data to a csv or left_join
 it to the original hex data and write it out as a polygon straight for
 mapping.
 
 ```r
 # Filter grids with less than 2 KIs
-analyzed_by_grid_thresholded <- analyzed_by_grid %>%
+analysed_by_grid_thresholded <- analysed_by_grid %>%
   filter(State_id %in% grid_summary_thresholded$State_id)
 
 # write.csv(
-  # analyzed_by_grid_thresholded,
+  # analysed_by_grid_thresholded,
   # file = paste0(month_of_assessment %>% str_replace_all("-","_"),"_AoK_hex_aggregations.csv"),
   # na = "NA",
   # row.names = FALSE)
 
-hex_grid_polygon_with_aggregated_data <- hex_grid %>% left_join(analyzed_by_grid_thresholded %>% st_drop_geometry())
+hex_grid_polygon_with_aggregated_data <- hex_grid %>% left_join(analysed_by_grid_thresholded %>% st_drop_geometry())
 
 # Or write it out to a polgon file for mapping
 # using st_write function
@@ -531,5 +531,5 @@ hex_grid_polygon_with_aggregated_data <- hex_grid %>% left_join(analyzed_by_grid
 
 # Next Steps
 
-streamline the aok_by_county agggregation function so that it does not
+Streamline the aok_by_county agggregation function so that it does not
 have to be continusly edited.
