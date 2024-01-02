@@ -35,19 +35,18 @@ source("scripts/functions/aok_aggregate_by_county_wrapped.R")
 ## New Settlement Data
 
 ```r
-month_of_assessment<-"2020-02-01"
+month_of_assessment <- "2020-02-01"
 
-admin_gdb<- "../../gis_data/gis_base/boundaries/county_shapefile"
-master_settlement<-read.csv("inputs/48_December_2019/SSD_Settlements_V37.csv", stringsAsFactors = FALSE)
-colnames(master_settlement)<-paste0("mast.",colnames(master_settlement))
-master_settlement_sf<- st_as_sf(master_settlement,coords=c("mast.X","mast.Y"), crs=4326)
+admin_gdb <- "../../gis_data/gis_base/boundaries/county_shapefile"
+master_settlement <- read.csv("inputs/48_December_2019/SSD_Settlements_V37.csv", stringsAsFactors = FALSE)
+colnames(master_settlement) <- paste0("mast.",colnames(master_settlement))
+master_settlement_sf <-  st_as_sf(master_settlement,coords=c("mast.X","mast.Y"), crs=4326)
 
+new_settlements <- butteR::read_all_csvs_in_folder(input_csv_folder = "inputs/2020_02/new_settlements")
+new_sett <- bind_rows(new_settlements)
+new_sett <- new_sett %>% filter(action=="Map")
 
-new_settlements<-butteR::read_all_csvs_in_folder(input_csv_folder = "inputs/2020_02/new_settlements")
-new_sett<-bind_rows(new_settlements)
-new_sett<-new_sett %>% filter(action=="Map")
-
-adm2<- st_read(admin_gdb,"ssd_admbnda_adm2_imwg_nbs_20180401" )
+adm2 <-  st_read(admin_gdb,"ssd_admbnda_adm2_imwg_nbs_20180401" )
 ```
 
     ## Reading layer `ssd_admbnda_adm2_imwg_nbs_20180401' from data source `C:\02_REACH_SSD\gis_data\gis_base\boundaries\county_shapefile' using driver `ESRI Shapefile'
@@ -59,14 +58,11 @@ adm2<- st_read(admin_gdb,"ssd_admbnda_adm2_imwg_nbs_20180401" )
     ## proj4string:    +proj=utm +zone=36 +datum=WGS84 +units=m +no_defs
 
 ```r
-adm2<-st_transform(adm2,crs=4326)
-new_sett_sf<-st_as_sf(new_sett,coords=c("long","lat"), crs=4326)
+adm2 <- st_transform(adm2,crs=4326)
+new_sett_sf <- st_as_sf(new_sett,coords=c("long","lat"), crs=4326)
 
 # Load raw data
-# aok_raw<-download_aok_data(keys_file = "scripts/functions/keys.R")
-# write.csv(aok_raw,"inputs/2020_02/2020_02_FEB_AOK_RAW_20200301.csv")
-# aok_raw<-read.csv("inputs/2020_02/2020_02_FEB_AOK_RAW_20200301.csv", stringsAsFactors = F,na.strings = c("n/a","", ""))
-aok_raw<-read.csv("inputs/2020_02/2020_02_FEB_AOK_RAW_20200304_from_KOBO.csv", stringsAsFactors = F,na.strings = c("n/a","", ""))
+aok_raw <- read.csv("inputs/2020_02/2020_02_FEB_AOK_RAW_20200304_from_KOBO.csv", stringsAsFactors = F,na.strings = c("n/a","", ""))
 ```
 
 ## Cleaning Logs
@@ -78,8 +74,8 @@ them using the two butteR tools commented out below.
 ```r
 # STEP 1 Compile cleaning logs
 
-# cleaning_logs<-butteR::read_all_csvs_in_folder(input_csv_folder = "inputs/2020_02/cleaning_logs")
-# cleaning_log<-bind_rows(cleaning_logs)
+# cleaning_logs <- butteR::read_all_csvs_in_folder(input_csv_folder = "inputs/2020_02/cleaning_logs")
+# cleaning_log <- bind_rows(cleaning_logs)
 
 # CHECK CLEANING LOG
 # butteR::check_cleaning_log()
@@ -96,15 +92,15 @@ them using the two butteR tools commented out below.
 
 ```r
 # Spatial join
-new_sett_sf<-new_sett_sf %>% st_join( adm2 %>% dplyr::select(adm2=admin2RefN))
+new_sett_sf <- new_sett_sf %>% st_join( adm2 %>% dplyr::select(adm2=admin2RefN))
 
-new_sett_sf<-new_sett_sf %>%
+new_sett_sf <- new_sett_sf %>%
   mutate(
     new.enum_sett_county=paste0(D.info_settlement_other,D.info_county) %>% tolower_rm_special(),
     new.adm2_sett_county=paste0(D.info_settlement_other,adm2) %>% tolower_rm_special()
   )
 
-master_settlement_sf<-master_settlement_sf %>%
+master_settlement_sf <- master_settlement_sf %>%
   mutate(
     mast.settlement_county_sanitized= mast.NAMECOUNTY %>% tolower_rm_special()
   )
@@ -124,17 +120,16 @@ cleaning log, remove it from the new settlement sheet.
 ```r
 # Check if new settletments have been fixed in the cleaning log
 
-aok_clean1<-aok_raw
+aok_clean1 <- aok_raw
 
-# aok_clean1[aok_clean1$X_uuid=="b4d97108-3f34-415d-9346-f22d2aa719ea","D.info_settlement_other"]<-NA
-# aok_clean1[aok_clean1$X_uuid=="b4d97108-3f34-415d-9346-f22d2aa719ea","D.info_settlement"]<-"Bajur"
+# aok_clean1[aok_clean1$X_uuid=="b4d97108-3f34-415d-9346-f22d2aa719ea","D.info_settlement_other"] <- NA
+# aok_clean1[aok_clean1$X_uuid=="b4d97108-3f34-415d-9346-f22d2aa719ea","D.info_settlement"] <- "Bajur"
 
-
-remove_from_new_sett<-aok_clean1 %>%
+remove_from_new_sett <- aok_clean1 %>%
   filter(X_uuid %in% new_sett_sf$uuid  & is.na(D.info_settlement_other))%>%
   select(X_uuid,D.info_settlement) %>% pull(X_uuid)
 
-new_sett_sf<- new_sett_sf %>% filter(!uuid %in% remove_from_new_sett)
+new_sett_sf <-  new_sett_sf %>% filter(!uuid %in% remove_from_new_sett)
 ```
 
 ## Exact Matches
@@ -149,18 +144,17 @@ the butteR::implement_cleaning_log function.
 
 ```r
 # New settlement data which matches master settlements exactly
-
-exact_matches1<-new_sett_sf %>%
+exact_matches1 <- new_sett_sf %>%
   mutate(matched_where= case_when(new.enum_sett_county %in% master_settlement$mast.settlement_county_sanitized~"enum", #CHECK WITH ENUMS INPUT
                                   new.adm2_sett_county %in% master_settlement$mast.settlement_county_sanitized~"shapefile_only" #CHECK WITH SHAEFILE COUNTY
   )) %>%
   filter(!is.na(matched_where)) # Only return exact matches
 
-# WRITE EXACT MATCHES TO CLEANING LOG TO THEN IMPLEMENT ON DATA.
-aok_exact_matches_cl<-exact_matches_to_cl(exact_match_data = exact_matches1,user = "Jack")
+# Write exact matches to cleaning log to implement on data.
+aok_exact_matches_cl <- exact_matches_to_cl(exact_match_data = exact_matches1,user = "Jack")
 
-#NOW IMPLEMENT THIS CLEANING LOG
-aok_clean2<-butteR::implement_cleaning_log(df = aok_clean1,df_uuid = "X_uuid",
+# Implement cleaning log.
+aok_clean2 <- butteR::implement_cleaning_log(df = aok_clean1,df_uuid = "X_uuid",
                                            cl = aok_exact_matches_cl,
                                            cl_change_type_col = "change_type",
                                            cl_change_col = "indicator",
@@ -182,19 +176,18 @@ output and also performs fuzzy string distance measurement which may be
 helpful.
 
 ```r
-#EXTRACT NEW SETTLEMENTS WHICH DO NO MATCH
-new_sett_sf_unmatched<- new_sett_sf %>% filter(!uuid %in% exact_matches1$uuid)
+# Extract new settlements which do not match.
+new_sett_sf_unmatched <-  new_sett_sf %>% filter(!uuid %in% exact_matches1$uuid)
 
-#REMOVE MATCHED SETTLEMENTS FROM MASTER
-master_settlement_sf_not_matched<-master_settlement_sf %>%
+# Remove matched settlements from master.
+master_settlement_sf_not_matched <- master_settlement_sf %>%
   filter(mast.settlement_county_sanitized %in% new_sett_sf_unmatched$new.enum_sett_county==FALSE)
 
-# MATCH NEW SETTLEMENT TO CLOSEST SETTLEMENT IN MASTER --------------------
-
-new_with_closest_old<-butteR::closest_distance_rtree(new_sett_sf_unmatched %>%
+# Match new settlement to closet settlement in master.
+new_with_closest_old <- butteR::closest_distance_rtree(new_sett_sf_unmatched %>%
                                                        st_as_sf(coords=c("X","Y"), crs=4326) ,master_settlement_sf_not_matched)
-#CLEAN UP DATASET
-new_with_closest_old_vars<-new_with_closest_old %>%
+# Clean dataset.
+new_with_closest_old_vars <- new_with_closest_old %>%
   mutate(new.D.info_settlement_other= D.info_settlement_other %>% gsub("-","_",.)) %>%
   select(uuid,
          new.A.base=A.base,
@@ -207,10 +200,8 @@ new_with_closest_old_vars<-new_with_closest_old %>%
          mast.settlement_county_sanitized,
          dist_m)
 
-
-
-# ADD A FEW USEFUL COLUMNS - THIS COULD BE WRITTEN TO A CSV AND WOULD BE THE BEST OUTPUT TO BE REVIEWED
-settlements_best_guess<-new_with_closest_old_vars %>%
+# Add a few useful columns.
+settlements_best_guess <- new_with_closest_old_vars %>%
   mutate(gte_50=ifelse(dist_m<500, " < 500 m",">= 500 m"),
          string_proxy=stringdist::stringdist(a =new.sett_county_enum,
                                              b= mast.settlement_county_sanitized,
@@ -249,24 +240,26 @@ user decided to fix the settlement with a settlement from the master
 list.
 
 ```r
-# HOWEVER, TO KEEP EVERYTHING IN THE R ENVIRONMENT- HERE IS AN INTERACTIVE FUNCTION TO MODIFY THE SETTLEMENT BEST GUESS DF IN PLACE
-# OUTUT WILL BE A CLEANING LOG (IF THERE ARE CHANGES TO BE MADE)
-new_settlement_evaluation<-evaluate_unmatched_settlements(user= "zack",new_settlement_table = settlements_best_guess)
+# To keep everything in the R environment, here is an interactive function
+# to modify the settlement best guess DF in place.
+# Output will be a cleaning log (if there are any changes to be made).
+new_settlement_evaluation <- evaluate_unmatched_settlements(user= "zack",new_settlement_table = settlements_best_guess)
 
 new_settlement_evaluation$checked_setlements
 new_settlement_evaluation$cleaning_log
 
-
-#IN THE ACTUAL SCRIPT IF WHERE THE CLEANING LOG IS CREATED IT WILL BE IMPLEMENTED HERE. HOWEVER SINCE THE CLEAING LOG CANNOT BE CREATED INTERACTIVELY WHEN THE DOCUMENT IS KNIT WE WILL NOT IMPLEMENT THE LOG
+# In the actual script, if where the cleaning log is created, it will be implemented here.
+# However, since the cleaning log cannot be created interactively when the document is knit,
+# we will not implement the log
 if(nrow(new_settlement_evaluation$cleaning_log>0)){
-aok_clean3<-butteR::implement_cleaning_log(df = aok_clean2,df_uuid = "X_uuid",
+aok_clean3 <- butteR::implement_cleaning_log(df = aok_clean2,df_uuid = "X_uuid",
                                            cl =new_settlement_evaluation$cleaning_log ,
                                            cl_change_type_col = "change_type",
                                            cl_change_col = "suggested_indicator",
                                            cl_uuid = "uuid",
                                            cl_new_val = "suggested_new_value")}
 else{
-  aok_clean3<-aok_clean2
+  aok_clean3 <- aok_clean2
 }
 ```
 
@@ -283,17 +276,14 @@ and producing the new master settlement list I will create the action
 column in R and name it appropriately
 
 ```r
-#this would normally be unnecessary as the objects would be created from the interactive function
-#############################################################################
-new_settlement_evaluation<-list()
-new_settlement_evaluation$checked_setlements<-settlements_best_guess
-new_settlement_evaluation$checked_setlements$action<-c(1,1,2,2,2)
-#############################################################################
+# This would normally be unnecessary as the objects would be created from the interactive function
+new_settlement_evaluation <- list()
+new_settlement_evaluation$checked_setlements <- settlements_best_guess
+new_settlement_evaluation$checked_setlements$action <- c(1,1,2,2,2)
 
-#THIS CLEANING LOG IMPLEMENTATION IS ACTUALLY CORRECT IN THE PREVIOUS PLACEMENT
-
-#put into itemset format
-new_sets_to_add_itemset<-new_settlement_evaluation$checked_setlements %>%
+# This cleaning log implementation is correct in the previous placement.
+# Put into itemset format
+new_sets_to_add_itemset <- new_settlement_evaluation$checked_setlements %>%
   filter(action==2) %>%
   mutate(
     list_name="settlements",
@@ -301,14 +291,13 @@ new_sets_to_add_itemset<-new_settlement_evaluation$checked_setlements %>%
   ) %>%
   select(list_name,name=new.D.info_settlement_other, label,admin_2=new.county_adm2)
 
-# read in previous itemset
-itemset<-read.csv("inputs/tool/REACH_SSD_AoK_V38_Febuary2020/itemsets.csv", strip.white = T, stringsAsFactors = T,na.strings = c(" ",""))
-itemset_not_other<-itemset %>% filter(name!="other")
-itemset_other<- itemset %>% filter(name=="other")
+# Read in previous itemset
+itemset <- read.csv("inputs/tool/REACH_SSD_AoK_V38_Febuary2020/itemsets.csv", strip.white = T, stringsAsFactors = T,na.strings = c(" ",""))
+itemset_not_other <- itemset %>% filter(name!="other")
+itemset_other <-  itemset %>% filter(name=="other")
 
-
-itemset_binded<-bind_rows(list(new_sets_to_add_itemset,itemset_not_other)) %>% arrange(admin_2)
-itemset_full_binded<- bind_rows(list(itemset_binded,itemset_other))
+itemset_binded <- bind_rows(list(new_sets_to_add_itemset,itemset_not_other)) %>% arrange(admin_2)
+itemset_full_binded <-  bind_rows(list(itemset_binded,itemset_other))
 ```
 
 ### Generate New Master Settlement List
@@ -319,10 +308,10 @@ settlement in again and adds all of the checked new settlements that are
 determined to be new.
 
 ```r
-# NEXT WE ADD THE NEW SETTLEMENTS TO THE MASTER LIST
-master_settlement<-read.csv("inputs/48_December_2019/SSD_Settlements_V37.csv", stringsAsFactors = FALSE)
+# Next we add the new settlement to the master list.
+master_settlement <- read.csv("inputs/48_December_2019/SSD_Settlements_V37.csv", stringsAsFactors = FALSE)
 
-new_setts_add_to_master<-new_settlement_evaluation$checked_setlements %>%
+new_setts_add_to_master <- new_settlement_evaluation$checked_setlements %>%
   filter(action==2) %>%
   mutate(
     NAME= new.D.info_settlement_other %>% gsub("_","-", .),
@@ -332,13 +321,13 @@ new_setts_add_to_master<-new_settlement_evaluation$checked_setlements %>%
     DATE= month_of_assessment %>% ymd(),
     DATA_SOURC="AOK",
     IMG_VERIFD= 0
-  ) %>% #get coordinates from field data back in
+  ) %>% # Get coordinates from field data back in
   left_join(new_sett_sf %>%
               st_drop_geometry_keep_coords(), by="uuid") %>%
   filter(!is.na(X)) %>%
   select(NAME,NAMEJOIN,NAMECOUNTY,COUNTYJOIN,DATE,DATA_SOURC,IMG_VERIFD,X,Y)
 
-master_new<-bind_rows(list(new_setts_add_to_master,master_settlement %>% mutate(DATE=dmy(DATE))))
+master_new <- bind_rows(list(new_setts_add_to_master,master_settlement %>% mutate(DATE=dmy(DATE))))
 ```
 
 # Aggregation / Analysis
@@ -364,20 +353,18 @@ added to the aggregation script/function. These columns
 function (i.e aok_yes,aok_mode, etc.).
 
 ```r
-###########################################
-#ok assume we have imlpemented all cleaning
-############################################
-aok_clean3<-aok_clean2
-iso_date<- Sys.Date() %>%  str_replace_all("-","_")
-#maybe change the way assessment month is represented
-aggregated_file_name<- paste0("outputs/", iso_date,"_reach_ssd_aok_data_analysis_basic_JAN2020_Data.csv")
 
-#next start with the rmeove grouper stuff.
-prev_round<-read.csv("inputs/2020_01/2020_02_13_reach_ssd_aok_clean_data_compiled.csv", stringsAsFactors = FALSE, na.strings=c("", " ", NA, "NA"))
+# Assume we have imlpemented all cleaning
+aok_clean3 <- aok_clean2
+iso_date <-  Sys.Date() %>%  str_replace_all("-","_")
 
+# Change the way assessment month is represented
+aggregated_file_name <-  paste0("outputs/", iso_date,"_reach_ssd_aok_data_analysis_basic_JAN2020_Data.csv")
 
+# Start with the rmeove grouper.
+prev_round <- read.csv("inputs/2020_01/2020_02_13_reach_ssd_aok_clean_data_compiled.csv", stringsAsFactors = FALSE, na.strings=c("", " ", NA, "NA"))
 
-aok_clean_by_county<-aggregate_aok_by_county(clean_aok_data = aok_clean3,aok_previous = prev_round, current_month = month_of_assessment)
+aok_clean_by_county <- aggregate_aok_by_county(clean_aok_data = aok_clean3,aok_previous = prev_round, current_month = month_of_assessment)
 ```
 
     ## [1] "WARNING you missed these: "
@@ -409,7 +396,7 @@ aok_clean_by_county<-aggregate_aok_by_county(clean_aok_data = aok_clean3,aok_pre
     ## "X_index")
 
 ```r
-# write.csv(aok_clean_by_county,aggregated_file_name)
+# Write.csv(aok_clean_by_county,aggregated_file_name)
 ```
 
 Once aggregation is completed it should be written to csv. This csv can
@@ -417,7 +404,7 @@ be binded to the long term data using the long term data aggregation
 script. The long term data is the input for the Tableau workbook.
 
 ```r
-# insert code here
+# Insert code here
 ```
 
 ## Hexagonal Aggregation
@@ -443,8 +430,8 @@ Merge AOK and master settlement list based on concatenated
 county-settlement name vector.
 
 ```r
-#READ IN HEX GRID
-hex_grid <- st_read(dsn = "inputs/GIS",layer ="Grids_info") %>%
+# Read in hex grid.
+hex_grid  <-  st_read(dsn = "inputs/GIS",layer ="Grids_info") %>%
   mutate( id_grid = as.numeric(rownames(.)))
 ```
 
@@ -457,23 +444,23 @@ hex_grid <- st_read(dsn = "inputs/GIS",layer ="Grids_info") %>%
     ## proj4string:    +proj=utm +zone=36 +datum=WGS84 +units=m +no_defs
 
 ```r
-master_sett_new<-master_new %>%
+master_sett_new <- master_new %>%
   mutate(id_sett = as.numeric(rownames(.))) %>%
   st_as_sf(coords=c("X","Y"), crs=4326) %>%
   st_transform(crs=st_crs(hex_grid)) %>%
   select(NAME:COUNTYJOIN)
 
-aok_clean3<-aok_clean3 %>%
+aok_clean3 <- aok_clean3 %>%
   mutate(date=month_of_assessment %>% ymd(),
          month=month(date),
          year=year(date),
-         #if we use D.info_settlement_final the others wont match until clean
+         # If we use D.info_settlement_final the others won't match until clean
          D.settlecounty=paste0(D.info_settlement,D.info_county)) %>%
-  # therefore use D.info_settlement and filter others for tutorial
+  # Therefore use D.info_settlement and filter others for tutorial
   filter(D.info_settlement!="other")
 
-sett_w_grid <- st_join(master_sett_new, hex_grid)
-assessed_w_grid <-inner_join(sett_w_grid, aok_clean3, by = c("NAMECOUNTY"="D.settlecounty") )
+sett_w_grid  <-  st_join(master_sett_new, hex_grid)
+assessed_w_grid  <- inner_join(sett_w_grid, aok_clean3, by = c("NAMECOUNTY"="D.settlecounty") )
 ```
 
 Aggregate the data to the hexagon grid-level through the following
@@ -483,22 +470,22 @@ less than 2 KIs or Settlements (would be good to have citation for this
 rule).
 
 ```r
-grid_summary<-assessed_w_grid %>%
+grid_summary <- assessed_w_grid %>%
   group_by(NAMECOUNTY,State_id) %>%
   summarise(D.ki_coverage=n()) %>%
   group_by(State_id) %>%
   summarise(settlement_num=n() ,ki_num=sum(D.ki_coverage) )
 
-#Filter Grids with less than 2 KIs
-grid_summary_thresholded <- grid_summary %>% filter(ki_num > 1, settlement_num > 1)
+# Filter grids with less than 2 KIs
+grid_summary_thresholded  <-  grid_summary %>% filter(ki_num > 1, settlement_num > 1)
 ```
 
 Next we will create composite indicators to analyze at the grid level.
 This may need to be edited to add or remove composite indicators later.
 
 ```r
-#create new composites
-assessed_w_grid_w_composite<-assessed_w_grid %>%
+# Create new composites
+assessed_w_grid_w_composite <- assessed_w_grid %>%
   mutate(
     idp_sites= ifelse(J.j2.idp_location=="informal_sites",1,0),
     IDP_present= ifelse(F.idp_now=="yes",1,0),
@@ -513,10 +500,10 @@ assessed_w_grid_w_composite<-assessed_w_grid %>%
     fsl_composite = (food_inadequate +less_one_meal+hunger_severe_worse+wildfood_sick_alltime+skipping_days)/5
   )
 
-#extract new columns added (should be only composite). You can add new composites above and this will still work
-vars_to_avg<-names(assessed_w_grid_w_composite)[!names(assessed_w_grid_w_composite)%in%names(assessed_w_grid)]
+# Extract new columns added (should be only composite). You can add new composites above and this will still work
+vars_to_avg <- names(assessed_w_grid_w_composite)[!names(assessed_w_grid_w_composite)%in%names(assessed_w_grid)]
 
-analyzed_by_grid<-assessed_w_grid_w_composite %>%
+analyzed_by_grid <- assessed_w_grid_w_composite %>%
   group_by(id_grid, State_id,month,year,date,D.info_state, D.info_county)%>%
   summarise_at(vars(vars_to_avg),mean, na.rm=T)
 ```
@@ -526,9 +513,8 @@ it to the original hex data and write it out as a polygon straight for
 mapping.
 
 ```r
-#Filter Grids with less than 2 KIs
-
-analyzed_by_grid_thresholded<-analyzed_by_grid %>%
+# Filter grids with less than 2 KIs
+analyzed_by_grid_thresholded <- analyzed_by_grid %>%
   filter(State_id %in% grid_summary_thresholded$State_id)
 
 # write.csv(
@@ -537,11 +523,10 @@ analyzed_by_grid_thresholded<-analyzed_by_grid %>%
   # na = "NA",
   # row.names = FALSE)
 
+hex_grid_polygon_with_aggregated_data <- hex_grid %>% left_join(analyzed_by_grid_thresholded %>% st_drop_geometry())
 
-hex_grid_polygon_with_aggregated_data<-hex_grid %>% left_join(analyzed_by_grid_thresholded %>% st_drop_geometry())
-
-# or write it out to a polgon file for mapping
-#using st_write function
+# Or write it out to a polgon file for mapping
+# using st_write function
 ```
 
 # Next Steps
