@@ -1,6 +1,4 @@
-
-## Aggregating function to pick "Yes" over "no" responses
-
+# Aggregating function to pick "Yes" over "no" responses
 aok_yes <- function(x) {
   ux <- unique(x[!is.na(x)])
   # This checks to see if we have more than one mode (a tie), return blank if so.
@@ -18,7 +16,6 @@ aok_yes <- function(x) {
 }
 
 ## Aggregating function to pick "no" over "yes" responses
-
 aok_no <- function(x) {
   ux <- unique(x[!is.na(x)])
   # This checks to see if we have more than one mode (a tie), return blank if so.
@@ -35,11 +32,7 @@ aok_no <- function(x) {
 
 }
 
-
-
-
-## Aggregating function to calculate mode, while outputting NC (No consensus) if we don't have a clear winner.
-
+# Aggregating function to calculate mode, while outputting NC (No consensus) if we don't have a clear winner.
 aok_mode <- function(x) {
   ux <- unique(x[!is.na(x)])
 
@@ -59,13 +52,11 @@ aok_mode <- function(x) {
 
 }
 
-
 AoK <- function(x) {
   aok_mode(x)
 }
 
-## Aggregating function to pick most recent responses  over others. For frequency questions
-
+# Aggregating function to pick most recent responses  over others. For frequency questions
 aok_frequency <- function(x) {
   ux <- unique(x[!is.na(x)])
   # This checks to see if we have more than one mode (a tie), return blank if so.
@@ -94,9 +85,7 @@ aok_frequency <- function(x) {
 
 }
 
-
-##Aggregating function to pick most recent responses  over others. For duration questions
-
+# Aggregating function to pick most recent responses  over others. For duration questions
 aok_recent <- function(x) {
   ux <- unique(x[!is.na(x)])
   # This checks to see if we have more than one mode (a tie), return blank if so.
@@ -122,10 +111,7 @@ aok_recent <- function(x) {
 
 }
 
-
-
-##Aggregating function to pick highest responses  over others.
-
+# Aggregating function to pick highest responses  over others.
 aok_highest <- function(x) {
   ux <- unique(x[!is.na(x)])
   # This checks to see if we have more than one mode (a tie), return blank if so.
@@ -154,9 +140,7 @@ aok_highest <- function(x) {
 
 }
 
-
-##Aggregating function to pick conflict rekated responses  over others.
-
+# Aggregating function to pick conflict rekated responses  over others.
 aok_conflict <- function(x) {
   ux <- unique(x[!is.na(x)])
   # This checks to see if we have more than one mode (a tie), return blank if so.
@@ -180,6 +164,3 @@ aok_conflict <- function(x) {
   }
 
 }
-
-
-
